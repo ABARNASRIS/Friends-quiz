@@ -150,6 +150,26 @@ h1,h2,p { margin: 0; }
 .friendship-spark { padding-top: 1px; color: #c57859; font-size: 18px; }
 .friendship-message h2 { color: #a35249; font-size: 13px; font-weight: 700; letter-spacing: .35px; }
 .friendship-message p { margin-top: 5px; color: #796b64; font-size: 11px; line-height: 1.55; }
+.scoreboard-panel { margin-top: 20px; padding: 16px 18px 14px; border: 1px solid #eacfc3; background: rgba(255,251,247,.8); }
+.scoreboard-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.scoreboard-header .eyebrow { display: inline-flex; color: var(--coral-deep); }
+.scoreboard-header strong { color: #674d46; font-size: 12px; }
+.scoreboard-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.scoreboard-item { display: grid; grid-template-columns: 42px minmax(0,1fr) auto auto; align-items: center; gap: 10px; padding: 9px 10px; border: 1px solid #efdcd1; background: rgba(255,255,255,.45); }
+.scoreboard-item.is-leader { border-color: #e7ba8b; background: rgba(255,244,226,.76); }
+.scoreboard-item.is-current { box-shadow: inset 0 0 0 1px rgba(233,112,98,.2); }
+.scoreboard-rank { color: #a78775; font-size: 11px; font-weight: 700; }
+.scoreboard-name { overflow: hidden; color: #403a38; font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.scoreboard-score { color: #7d655f; font-size: 11px; font-weight: 700; }
+.leader-badge { padding: 4px 7px; border-radius: 999px; background: #f5d7b6; color: #854d39; font-size: 9px; font-weight: 700; letter-spacing: .7px; }
+.scoreboard-link { width: 100%; margin-top: 10px; }
+.scoreboard-page { width: min(100%,680px); flex: 1; padding: 37px 0 48px; animation: page-in 440ms cubic-bezier(.2,.7,.2,1) both; }
+.scoreboard-header-panel { display: flex; flex-direction: column; gap: 8px; text-align: center; }
+.scoreboard-header-panel h1 { margin-top: 6px; font-family: 'Playfair Display',Georgia,serif; font-size: clamp(40px,5vw,56px); line-height: 1.08; }
+.scoreboard-header-panel p { color: #887d77; font-size: 13px; }
+.scoreboard-panel.standalone { margin-top: 24px; }
+.empty-scoreboard { padding: 26px 18px; color: #7a6d69; font-size: 14px; text-align: center; }
+.scoreboard-footer { margin-top: 18px; }
 .result-actions { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 21px; }
 .result-actions .button { min-height: 44px; font-size: 11px; }
 .retake-button { padding-inline: 7px; }
@@ -213,6 +233,10 @@ h1,h2,p { margin: 0; }
   .score-stats { padding: 17px 13px; }
   .stat-row { grid-template-columns: 20px 1fr auto; gap: 5px; font-size: 9px; }
   .friendship-row strong { max-width: 92px; font-size: 8px; }
+  .scoreboard-header { align-items: flex-start; flex-direction: column; }
+  .scoreboard-item { grid-template-columns: 32px minmax(0,1fr) auto; }
+  .leader-badge { grid-column: 2 / 4; justify-self: start; }
+  .scoreboard-footer { flex-direction: column; }
   .result-actions { flex-wrap: wrap; }
   .result-actions .button { flex: 1 1 44%; }
   .retake-button { flex-basis: 100%; }

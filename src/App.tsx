@@ -1,11 +1,19 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { calculateScore } from './quiz/scoring'
 import { questions } from './quiz/questions'
 import type { QuizResult } from './quiz/scoring'
 import './App.css'
 
-type Screen = 'welcome' | 'quiz' | 'result' | 'review'
+type Screen = 'welcome' | 'quiz' | 'result' | 'review' | 'scoreboard'
+type ScoreboardEntry = {
+  name: string
+  score: number
+  percentage: number
+  createdAt: number
+}
+
 const letters = ['A', 'B', 'C', 'D']
+const STORAGE_KEY = 'friends-quiz-scoreboard'
 
 function App() {
   const [screen, setScreen] = useState<Screen>('welcome')
@@ -13,10 +21,30 @@ function App() {
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [answers, setAnswers] = useState<Record<number, string>>({})
   const [result, setResult] = useState<QuizResult | null>(null)
+  const [scoreboard, setScoreboard] = useState<ScoreboardEntry[]>(() => {
+    if (typeof window === 'undefined') return []
+    try {
+      const rawValue = window.localStorage.getItem(STORAGE_KEY)
+      if (!rawValue) return []
+      const parsed = JSON.parse(rawValue) as ScoreboardEntry[]
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  })
   const [shareMessage, setShareMessage] = useState('')
   const question = questions[currentQuestion]
   const completedCount = Object.keys(answers).length
   const supportsShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
+  const topScoreEntry = scoreboard[0]
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(scoreboard))
+    } catch {
+      // Ignore storage write failures in restricted environments.
+    }
+  }, [scoreboard])
 
   function startQuiz(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -27,7 +55,23 @@ function App() {
 
   function submitQuiz() {
     if (completedCount !== questions.length) return
-    setResult(calculateScore(answers))
+
+    const nextResult = calculateScore(answers)
+    const playerName = friendName.trim()
+
+    setScoreboard((current) => {
+      const nextEntries = [...current, {
+        name: playerName,
+        score: nextResult.score,
+        percentage: nextResult.percentage,
+        createdAt: Date.now(),
+      }]
+      return nextEntries
+        .sort((left, right) => right.score - left.score || left.name.localeCompare(right.name))
+        .slice(0, 6)
+    })
+
+    setResult(nextResult)
     setScreen('result')
   }
 
@@ -82,6 +126,7 @@ function App() {
                 <input id="friend-name" name="friendName" type="text" placeholder="Enter your name" value={friendName} onChange={(event) => setFriendName(event.target.value)} autoComplete="given-name" maxLength={40} required />
               </div>
               <button className="button button-primary start-button" type="submit" disabled={!friendName.trim()}>Let’s play <span aria-hidden="true">↗</span></button>
+              <button className="button button-secondary scoreboard-link" type="button" onClick={() => setScreen('scoreboard')}>View scoreboard</button>
               <p className="form-footnote"><span aria-hidden="true">♥</span> 12 questions, one very good friend</p>
             </form>
           </div>
@@ -138,8 +183,10 @@ function App() {
             </div>
           </div>
           <div className="friendship-message"><span className="friendship-spark" aria-hidden="true">✳</span><div><h2>{result.friendship.title}</h2><p>{result.friendship.message}</p></div></div>
+
           <div className="result-actions">
             <button className="button button-primary" type="button" onClick={() => setScreen('review')}>Review my answers <span aria-hidden="true">↗</span></button>
+            <button className="button button-secondary" type="button" onClick={() => setScreen('scoreboard')}>View scoreboard</button>
             <button className="button button-secondary" type="button" onClick={shareResult}>{supportsShare ? 'Share my result' : 'Copy result'} <span aria-hidden="true">{supportsShare ? '↗' : '▢'}</span></button>
             <button className="retake-button" type="button" onClick={retakeQuiz}>↻ <span>Retake quiz</span></button>
           </div>
@@ -155,6 +202,39 @@ function App() {
             return <article className={`review-item${correct ? ' review-correct' : ' review-wrong'}`} key={item.question}><div className="review-status" aria-label={correct ? 'Correct' : 'Incorrect'}>{correct ? '✓' : '×'}</div><div className="review-copy"><span className="review-number">QUESTION {String(index + 1).padStart(2, '0')}</span><h2>{item.question}</h2><p>Your answer <strong>{answers[index]}</strong></p>{!correct && <p className="correct-answer-line">The answer <strong>{item.correctAnswer}</strong></p>}</div></article>
           })}</div>
           <div className="review-footer"><button className="button button-secondary" type="button" onClick={() => setScreen('result')}>← Back to results</button><button className="button button-primary" type="button" onClick={retakeQuiz}>Retake quiz <span aria-hidden="true">↻</span></button></div>
+        </section>
+      )}
+
+      {screen === 'scoreboard' && (
+        <section className="scoreboard-page" aria-labelledby="scoreboard-title">
+          <div className="scoreboard-header-panel">
+            <button className="text-button" type="button" onClick={() => setScreen('welcome')}>← <span>Back to home</span></button>
+            <div className="eyebrow"><span className="eyebrow-dot" /> SCOREBOARD</div>
+            <h1 id="scoreboard-title">Top scores</h1>
+            <p>{topScoreEntry ? `${topScoreEntry.name} is leading with ${topScoreEntry.score}/${questions.length} marks.` : 'No scores yet. Finish a quiz to start the leaderboard.'}</p>
+          </div>
+
+          <div className="scoreboard-panel standalone" aria-live="polite">
+            {scoreboard.length === 0 ? (
+              <div className="empty-scoreboard">No scores yet.</div>
+            ) : (
+              <ol className="scoreboard-list">
+                {scoreboard.map((entry, index) => (
+                  <li key={`${entry.name}-${index}-${entry.createdAt}`} className={`scoreboard-item${index === 0 ? ' is-leader' : ''}`}>
+                    <span className="scoreboard-rank">#{index + 1}</span>
+                    <span className="scoreboard-name">{entry.name}</span>
+                    <span className="scoreboard-score">{entry.score}/{questions.length}</span>
+                    {index === 0 && <span className="leader-badge">TOP</span>}
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
+
+          <div className="review-footer scoreboard-footer">
+            <button className="button button-secondary" type="button" onClick={() => setScreen('welcome')}>Back home</button>
+            <button className="button button-primary" type="button" onClick={() => setScreen('quiz')}>Play now</button>
+          </div>
         </section>
       )}
 
